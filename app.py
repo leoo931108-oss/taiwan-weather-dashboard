@@ -3,8 +3,12 @@ import streamlit as st
 import pandas as pd
 import json
 import os
+import urllib3
 
-# 🔥 使用你的 API Key
+# 關閉 SSL 警告（因為 verify=False）
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+# 讀取 API Key（從 Streamlit Cloud Secrets）
 API_KEY = os.environ.get("CWA_API_KEY")
 
 DATASTORE_ID = "F-C0032-001"
@@ -18,14 +22,17 @@ LOCATIONS = [
     "澎湖縣","金門縣","連江縣"
 ]
 
+
 def fetch_city_weather(city):
-    """抓單一縣市的三十六小時預報資料"""
+    """抓單一縣市的36小時預報資料"""
+
     url = (
         f"https://opendata.cwa.gov.tw/api/v1/rest/datastore/{DATASTORE_ID}"
         f"?Authorization={API_KEY}&locationName={city}"
     )
 
-    res = requests.get(url)
+    # 🔥 修正 Streamlit Cloud 的 SSL 錯誤
+    res = requests.get(url, verify=False)
     data = res.json()
 
     if data.get("success") != "true":
@@ -38,7 +45,7 @@ def fetch_city_weather(city):
     min_temp_times = next((e["time"] for e in elements if e["elementName"] == "MinT"), [])
     max_temp_times = next((e["time"] for e in elements if e["elementName"] == "MaxT"), [])
 
-    # 生成溫度趨勢資料
+    # 36 小時溫度資料
     chart_data = []
     for min_t, max_t in zip(min_temp_times, max_temp_times):
         time_point = pd.to_datetime(min_t["startTime"]).strftime("%m-%d %H:%M")
@@ -50,7 +57,7 @@ def fetch_city_weather(city):
 
     df_chart = pd.DataFrame(chart_data).set_index("時間")
 
-    # 生成所有天氣要素表格
+    # 天氣要素表格
     table_data = [
         {
             "天氣要素": e["elementName"],
@@ -63,50 +70,39 @@ def fetch_city_weather(city):
     return df_chart, df_table
 
 
+
 def main():
     st.set_page_config(layout="wide")
     st.title("🌤️ 台灣氣象資料 Dashboard")
     st.markdown("中央氣象署開放資料（F-C0032-001）")
     st.markdown("---")
 
+    # 檢查 API Key 是否存在
     if not API_KEY:
-        st.error("❌ 請確認 API_KEY 是否寫入程式！")
+        st.error("❌ 找不到 API Key！請到 Streamlit Cloud 的 Secrets 設定 CWA_API_KEY。")
         return
 
-    # 👉 選單：單一縣市
+    # 縣市選單
     selected_city = st.selectbox("選擇縣市", LOCATIONS)
 
-    # ➤ 抓該縣市所有資料
     result = fetch_city_weather(selected_city)
 
     if result is None:
-        st.error("無法取得資料，請檢查 API Key 或縣市名稱。")
+        st.error("❌ 無法取得資料，請確認 API Key 或縣市名稱是否正確。")
         return
 
     df_chart, df_table = result
 
-    # -------------------------------
-    # 📈 單縣市 36 小時溫度趨勢
-    # -------------------------------
+    # 📈 繪製 36 小時溫度折線圖
     st.subheader(f"📈 {selected_city} - 未來 36 小時溫度趨勢")
     st.line_chart(df_chart)
-
     st.markdown("---")
 
-    # -------------------------------
-    # 📋 單縣市詳細天氣資訊
-    # -------------------------------
+    # 📋 詳細資料表格
     st.subheader(f"📋 {selected_city} - 天氣詳細資訊")
     st.table(df_table)
 
 
+
 if __name__ == "__main__":
     main()
-
-
-
-
-
-
-
-
