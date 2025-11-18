@@ -4,7 +4,7 @@ import pandas as pd
 import json
 
 # 🔥 使用你的 API Key
-API_KEY = os.environ.get("CWA-5B0B624E-4364-4BA2-8419-D5F33F33290E")
+API_KEY = os.environ.get("CWA_API_KEY")
 
 DATASTORE_ID = "F-C0032-001"
 
@@ -101,4 +101,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
