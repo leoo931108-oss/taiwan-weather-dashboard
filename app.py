@@ -2,6 +2,7 @@ import requests
 import streamlit as st
 import pandas as pd
 import json
+import os
 
 # 🔥 使用你的 API Key
 API_KEY = os.environ.get("CWA_API_KEY")
@@ -101,5 +102,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
